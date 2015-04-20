@@ -109,7 +109,7 @@ void getgps(TinyGPS &gps)
   temporaryGPSData += String(day, DEC); temporaryGPSData += String("/"); temporaryGPSData += String(year);
   temporaryGPSData += String("  Time: "); temporaryGPSData += String(hour, DEC); temporaryGPSData += String(":"); 
   temporaryGPSData += String(minute, DEC); temporaryGPSData += String(":"); temporaryGPSData += String(second, DEC); 
-  temporaryGPSData += String("."); temporaryGPSData += Stringln(hundredths, DEC);
+  temporaryGPSData += String("."); temporaryGPSData += stringln(hundredths, DEC);
   //Since month, day, hour, minute, second, and hundr
   
   /*
