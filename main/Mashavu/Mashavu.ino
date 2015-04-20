@@ -46,7 +46,7 @@ Keypad keypad = Keypad( makeKeymap(keys), rowPins, colPins, ROWS, COLS );
 void setup() {
   // set up the LCD's number of columns and rows: 
   lcd.begin(16, 2);
-  lcd.print("Hello, Sean!");
+  lcd.print("Hello, Patient!");
   lcd.setBacklight(WHITE);
 }
 
@@ -57,5 +57,31 @@ void loop() {
   if (key) {
     lcd.clear();
     lcd.print(key);
+  }
+  uint8_t buttons = lcd.readButtons();
+
+  if (buttons) {
+    lcd.clear();
+    lcd.setCursor(0,0);
+    if (buttons & BUTTON_UP) {
+      lcd.print("UP ");
+      lcd.setBacklight(RED);
+    }
+    if (buttons & BUTTON_DOWN) {
+      lcd.print("DOWN ");
+      lcd.setBacklight(YELLOW);
+    }
+    if (buttons & BUTTON_LEFT) {
+      lcd.print("LEFT ");
+      lcd.setBacklight(GREEN);
+    }
+    if (buttons & BUTTON_RIGHT) {
+      lcd.print("RIGHT ");
+      lcd.setBacklight(TEAL);
+    }
+    if (buttons & BUTTON_SELECT) {
+      lcd.print("SELECT ");
+      lcd.setBacklight(VIOLET);
+    }
   }
 }
