@@ -5,7 +5,7 @@ Our Git Repo - https://github.com/NetSaber777/PSU-Mashavu
 Requires following work libraries in Arduino sketchbook libraries folder - http://www.arduino.cc/en/guide/libraries
 -Adafruit RGB LCD Shield Library - https://github.com/adafruit/Adafruit-RGB-LCD-Shield-Library/archive/master.zip 
 --Guide https://learn.adafruit.com/rgb-lcd-shield/overview
--Adafruit Ultimate GPS Logger Shield
+-Adafruit Ultimate GPS Logger Shield - https://github.com/adafruit/Adafruit-GPS-Library/
 --Guide https://learn.adafruit.com/adafruit-ultimate-gps-logger-shield/overview
 -12 Button Keypad - http://playground.arduino.cc/uploads/Code/keypad.zip
 --Guide http://cdn.sparkfun.com/datasheets/Components/General/SparkfunCOM-08653_Datasheet.pdf
@@ -13,11 +13,15 @@ Requires following work libraries in Arduino sketchbook libraries folder - http:
 */
 
 //LCD Shield Colors
+#include <SoftwareSerial.h>
 #include <Wire.h>
 #include <Adafruit_MCP23017.h>
 #include <Adafruit_RGBLCDShield.h>
 #include <Keypad.h>
-#include <TinyGPS.h>
+#include <Adafruit_GPS.h>
+#include <SPI.h>
+#include <SD.h>
+//#include <TinyGPS.h>
 
 //Begin LCD Setup
 Adafruit_RGBLCDShield lcd = Adafruit_RGBLCDShield();
@@ -45,23 +49,33 @@ byte colPins[COLS] = {2, 3, 4}; //connect to the column pinouts of the keypad
 
 Keypad keypad = Keypad( makeKeymap(keys), rowPins, colPins, ROWS, COLS );
 
+/*
+//Begin TinyGPS TSetup
+TinyGPS gps;*/
+
 void setup() {
-  delay(2000);
-  // set up the LCD's number of columns and rows: 
+  delay(5000);
   //Serial1 is debug channel on USB.
-  Serial1.begin(9600);
+  Serial.begin(9600);
+  
+  //Begin Serial1 Interface on GPS Module
+  Serial1.begin(115200);
   Serial1.println("Begin Debug");
+  
   //Begin LCD Screen
+  // set up the LCD's number of columns and rows: 
   lcd.begin(16, 2);
   lcd.setBacklight(WHITE);
   lcd.print("Hello, Patient!");
 }
 
 void loop() {
+  
+  //Debug Logic on GPS to Console - Maybe Buggy? NMEA is weird
   if (Serial1.available() > 0) {
   for (int i=0; i<8; i++) {
     char buff[i];
-    Serial1.print(buff[i] = Serial2.read());
+    Serial.println(buff[i] = Serial1.read());
     }
   }
   /*
@@ -98,7 +112,7 @@ void loop() {
     }
   }*/
 }
-
+/*
 String getgps(TinyGPS &gps)
 {
   // To get all of the data into varialbes that you can use in your code, 
@@ -140,7 +154,7 @@ String getgps(TinyGPS &gps)
   Serial.print("Speed(kmph): "); Serial.println(gps.f_speed_kmph());
   Serial.println();
   */
-  
+  /*
   // Here you can print statistics on the sentences.
   unsigned long chars;
   unsigned short sentences, failed_checksum;
@@ -148,4 +162,4 @@ String getgps(TinyGPS &gps)
   //Serial.print("Failed Checksums: ");Serial.print(failed_checksum);
   //Serial.println(); Serial.println();
   return temporaryGPSData;
-}
+}*/
