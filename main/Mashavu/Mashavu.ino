@@ -57,19 +57,6 @@ uint32_t timer = millis();
 //Program Data Structs
 
 //Global Strings for LCD and File Parsing
-String S_TIME = "";
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -107,7 +94,7 @@ void setup() {
   Serial.begin(115200);
   Serial.println("Begin Mashavu Debug");
   useInterrupt(true);
-  DEBUG_STATE = false;
+  DEBUG_STATE = true;
   
   //Begin Serial1 Interface on GPS Module
   GPS.begin(9600);
@@ -170,6 +157,8 @@ void lcdShowTime(){
   lcd.print(GPS.minute); lcd.print(":");
   lcd.print(GPS.seconds);
 }
+
+
 
 void loop() {
   
