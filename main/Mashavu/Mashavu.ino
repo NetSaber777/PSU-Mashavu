@@ -1,6 +1,5 @@
 //Main Mashavu Work Sketch
-/*
-Our Git Repo - https://github.com/NetSaber777/PSU-Mashavu
+/*Our Git Repo - https://github.com/NetSaber777/PSU-Mashavu
 
 Requires following work libraries in Arduino sketchbook libraries folder - http://www.arduino.cc/en/guide/libraries
 -Adafruit RGB LCD Shield Library - https://github.com/adafruit/Adafruit-RGB-LCD-Shield-Library/archive/master.zip 
@@ -9,10 +8,7 @@ Requires following work libraries in Arduino sketchbook libraries folder - http:
 --Guide https://learn.adafruit.com/adafruit-ultimate-gps-logger-shield/overview
 -12 Button Keypad - http://playground.arduino.cc/uploads/Code/keypad.zip
 --Guide http://cdn.sparkfun.com/datasheets/Components/General/SparkfunCOM-08653_Datasheet.pdf
-
 */
-
-//LCD Shield Colors
 #include <SoftwareSerial.h>
 #include <Wire.h>
 #include <Adafruit_MCP23017.h>
@@ -21,11 +17,12 @@ Requires following work libraries in Arduino sketchbook libraries folder - http:
 #include <Adafruit_GPS.h>
 #include <SPI.h>
 #include <SD.h>
-//#include <TinyGPS.h>
 
+//Begin DEV Settings
+bool DEBUG_STATE;
 //Begin LCD Setup
 Adafruit_RGBLCDShield lcd = Adafruit_RGBLCDShield();
-
+//LCD Shield Colors
 #define OFF 0x0
 #define RED 0x1
 #define YELLOW 0x3
@@ -34,6 +31,12 @@ Adafruit_RGBLCDShield lcd = Adafruit_RGBLCDShield();
 #define BLUE 0x4
 #define VIOLET 0x5
 #define WHITE 0x7
+
+//Begin GPS Setup
+Adafruit_GPS GPS(&Serial1);
+#define GPSECHO  true
+boolean usingInterrupt = false;
+void useInterrupt(boolean);
 
 //Begin Keypad Setup
 const byte ROWS = 4; //four rows
@@ -46,38 +49,151 @@ char keys[ROWS][COLS] = {
 };
 byte rowPins[ROWS] = {5, 6, 7, 8}; //connect to the row pinouts of the keypad
 byte colPins[COLS] = {2, 3, 4}; //connect to the column pinouts of the keypad
-
 Keypad keypad = Keypad( makeKeymap(keys), rowPins, colPins, ROWS, COLS );
 
-/*
-//Begin TinyGPS TSetup
-TinyGPS gps;*/
+//Logical Interrupt Time Handler
+uint32_t timer = millis();
+
+//Program Data Structs
+
+//Global Strings for LCD and File Parsing
+String S_TIME = "";
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//Begin Program Logic
+
+// Interrupt is called once a millisecond, looks for any new GPS data, and stores it
+SIGNAL(TIMER0_COMPA_vect) {
+  char c = GPS.read();
+  // if you want to debug, this is a good time to do it!
+#ifdef UDR0
+  if (GPSECHO && DEBUG_STATE)
+    if (c) UDR0 = c;  
+    // writing direct to UDR0 is much much faster than Serial.print 
+    // but only one character can be written at a time. 
+#endif
+}
+
+void useInterrupt(boolean v) {
+  if (v) {
+    // Timer0 is already used for millis() - we'll just interrupt somewhere
+    // in the middle and call the "Compare A" function above
+    OCR0A = 0xAF;
+    TIMSK0 |= _BV(OCIE0A);
+    usingInterrupt = true;
+  } else {
+    // do not call the interrupt function COMPA anymore
+    TIMSK0 &= ~_BV(OCIE0A);
+    usingInterrupt = false;
+  }
+}
 
 void setup() {
-  delay(5000);
-  //Serial1 is debug channel on USB.
-  Serial.begin(9600);
+  //delay(5000);
+  //Serial Debug via USB. Higher Refresh to keep up with parsing rate of GPS to USB Buffer
+  Serial.begin(115200);
+  Serial.println("Begin Mashavu Debug");
+  useInterrupt(true);
+  DEBUG_STATE = false;
   
   //Begin Serial1 Interface on GPS Module
-  Serial1.begin(115200);
-  Serial1.println("Begin Debug");
+  GPS.begin(9600);
+  GPS.sendCommand(PMTK_SET_NMEA_OUTPUT_RMCGGA);
+  GPS.sendCommand(PMTK_SET_NMEA_UPDATE_1HZ);
+  GPS.sendCommand(PGCMD_ANTENNA);
   
-  //Begin LCD Screen
+  //Begin LCD Screen - I2C Connection
   // set up the LCD's number of columns and rows: 
   lcd.begin(16, 2);
   lcd.setBacklight(WHITE);
-  lcd.print("Hello, Patient!");
+  lcd.print("Hello, Scrub!");
+  delay(3000);
+}
+
+void gpsDebug(){
+  // if millis() or timer wraps around, we'll just reset it
+  if (timer > millis())  timer = millis();
+
+  // print state every 2 seconds
+  if (millis() - timer > 2000) { 
+    timer = millis(); // reset the timer
+    
+    Serial.print("\nTime: ");
+    Serial.print(GPS.hour, DEC); Serial.print(':');
+    Serial.print(GPS.minute, DEC); Serial.print(':');
+    Serial.print(GPS.seconds, DEC); Serial.print('.');
+    Serial.println(GPS.milliseconds);
+    Serial.print("Date: ");
+    Serial.print(GPS.day, DEC); Serial.print('/');
+    Serial.print(GPS.month, DEC); Serial.print("/20");
+    Serial.println(GPS.year, DEC);
+    Serial.print("Fix: "); Serial.print((int)GPS.fix);
+    Serial.print(" quality: "); Serial.println((int)GPS.fixquality); 
+    if (GPS.fix) {
+      Serial.print("Location: ");
+      Serial.print(GPS.latitude, 4); Serial.print(GPS.lat);
+      Serial.print(", "); 
+      Serial.print(GPS.longitude, 4); Serial.println(GPS.lon);
+      Serial.print("Location (in degrees, works with Google Maps): ");
+      Serial.print(GPS.latitudeDegrees, 4);
+      Serial.print(", "); 
+      Serial.println(GPS.longitudeDegrees, 4);
+      
+      Serial.print("Speed (knots): "); Serial.println(GPS.speed);
+      Serial.print("Angle: "); Serial.println(GPS.angle);
+      Serial.print("Altitude: "); Serial.println(GPS.altitude);
+      Serial.print("Satellites: "); Serial.println((int)GPS.satellites);
+    }
+  }
+}
+
+//Shows current GPS time on LCD screen
+void lcdShowTime(){
+  lcd.clear();
+  lcd.print("Time");
+  lcd.setCursor(0,1);
+  
+  lcd.print(GPS.hour); lcd.print(":");
+  lcd.print(GPS.minute); lcd.print(":");
+  lcd.print(GPS.seconds);
 }
 
 void loop() {
   
-  //Debug Logic on GPS to Console - Maybe Buggy? NMEA is weird
-  if (Serial1.available() > 0) {
-  for (int i=0; i<8; i++) {
-    char buff[i];
-    Serial.println(buff[i] = Serial1.read());
-    }
+  // in case you are not using the interrupt above, you'll
+  // need to 'hand query' the GPS, not suggested :(
+  if (! usingInterrupt) {
+    // read data from the GPS in the 'main loop'
+    char c = GPS.read();
+    // if you want to debug, this is a good time to do it!
+    if (GPSECHO && DEBUG_STATE)
+      if (c) Serial.print(c);
   }
+  
+  // if a sentence is received, we can check the checksum, parse it...
+  if (GPS.newNMEAreceived()) {
+    if (!GPS.parse(GPS.lastNMEA()))   // this also sets the newNMEAreceived() flag to false
+      return;  // parse fail handling
+  }
+
+  if(DEBUG_STATE)
+    gpsDebug();
+  
+  lcdShowTime();
+  delay(1000);
   /*
   char key = keypad.getKey();
 
@@ -112,54 +228,4 @@ void loop() {
     }
   }*/
 }
-/*
-String getgps(TinyGPS &gps)
-{
-  // To get all of the data into varialbes that you can use in your code, 
-  // all you need to do is define variables and query the object for the 
-  // data. To see the complete list of functions see keywords.txt file in 
-  // the TinyGPS and NewSoftSerial libs.
-  String temporaryGPSData = "";
-  // Define the variables that will be used
-  float latitude, longitude;
-  // Then call this function
-  gps.f_get_position(&latitude, &longitude);
-  // You can now print variables latitude and longitude
-  temporaryGPSData += String("Lat/Long:"); 
-  temporaryGPSData += String(latitude,5); 
-  temporaryGPSData += String(","); 
-  temporaryGPSData += String(longitude,5);
-  temporaryGPSData += String(":"); 
-  // Same goes for date and time
-  int year;
-  byte month, day, hour, minute, second, hundredths;
-  gps.crack_datetime(&year,&month,&day,&hour,&minute,&second,&hundredths);
-  // Print data and time
-  temporaryGPSData += String("Date:"); 
-  temporaryGPSData += String(month, DEC); 
-  temporaryGPSData += String("/"); 
-  temporaryGPSData += String(day, DEC); temporaryGPSData += String("/"); temporaryGPSData += String(year);
-  temporaryGPSData += String("  Time: "); temporaryGPSData += String(hour, DEC); temporaryGPSData += String(":"); 
-  temporaryGPSData += String(minute, DEC); temporaryGPSData += String(":"); temporaryGPSData += String(second, DEC); 
-  temporaryGPSData += String("."); temporaryGPSData += String(hundredths, DEC);
-  //Since month, day, hour, minute, second, and hundr
-  
-  /*
-  // Here you can print the altitude and course values directly since 
-  // there is only one value for the function
-  Serial.print("Altitude (meters): "); Serial.println(gps.f_altitude());  
-  // Same goes for course
-  Serial.print("Course (degrees): "); Serial.println(gps.f_course()); 
-  // And same goes for speed
-  Serial.print("Speed(kmph): "); Serial.println(gps.f_speed_kmph());
-  Serial.println();
-  */
-  /*
-  // Here you can print statistics on the sentences.
-  unsigned long chars;
-  unsigned short sentences, failed_checksum;
-  gps.stats(&chars, &sentences, &failed_checksum);
-  //Serial.print("Failed Checksums: ");Serial.print(failed_checksum);
-  //Serial.println(); Serial.println();
-  return temporaryGPSData;
-}*/
+
