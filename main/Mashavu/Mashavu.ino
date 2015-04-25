@@ -20,6 +20,7 @@ Requires following work libraries in Arduino sketchbook libraries folder - http:
 
 //Begin DEV Settings
 bool DEBUG_STATE;
+
 //Begin LCD Setup
 Adafruit_RGBLCDShield lcd = Adafruit_RGBLCDShield();
 //LCD Shield Colors
@@ -31,6 +32,9 @@ Adafruit_RGBLCDShield lcd = Adafruit_RGBLCDShield();
 #define BLUE 0x4
 #define VIOLET 0x5
 #define WHITE 0x7
+////Global Text for LCD
+char *DATA_ENTRY[] = {"1:Male 2:Female", "Age (Years):", "Height (cm):", "Weight (kg):", "Systolic BP:", "Diastolic BP:"};
+char *MAIN_MENU[] = {"Hello Mashavu!", "Collect", "Options", "Status"};
 
 //Begin GPS Setup
 Adafruit_GPS GPS(&Serial1);
@@ -55,10 +59,11 @@ Keypad keypad = Keypad( makeKeymap(keys), rowPins, colPins, ROWS, COLS );
 uint32_t timer = millis();
 
 //Program Data Structs
-
-//Global Strings for LCD and File Parsing
-
-
+typedef struct {
+  uint8_t gender, age, height, weight, systolic_bp, diastolic_bp;
+  //GPS DATA
+  uint8_t hour, minute, seconds, year, month, day;
+} SD_ENTRY;
 
 //Begin Program Logic
 
@@ -162,20 +167,19 @@ void lcdShowTime(){
 
 void loop() {
   
-  // in case you are not using the interrupt above, you'll
-  // need to 'hand query' the GPS, not suggested :(
+  // Alternative to Interrupt Handling. - Leave in
   if (! usingInterrupt) {
-    // read data from the GPS in the 'main loop'
+    // read data from the GPS in the 'main loop' - not active now
     char c = GPS.read();
-    // if you want to debug, this is a good time to do it!
+    // Non-interrupt debug here
     if (GPSECHO && DEBUG_STATE)
       if (c) Serial.print(c);
   }
   
-  // if a sentence is received, we can check the checksum, parse it...
+  // if NMEA sentece receievevd, parse away
   if (GPS.newNMEAreceived()) {
     if (!GPS.parse(GPS.lastNMEA()))   // this also sets the newNMEAreceived() flag to false
-      return;  // parse fail handling
+      return;  // parse fail handling - and we don't care
   }
 
   if(DEBUG_STATE)
