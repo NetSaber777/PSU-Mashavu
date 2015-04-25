@@ -18,6 +18,7 @@ Requires following work libraries in Arduino sketchbook libraries folder - http:
 #include <SPI.h>
 #include <SD.h>
 #include <EEPROM.h>
+#include <String.h>
 
 //Begin DEV Settings
 bool DEBUG_STATE;
@@ -149,25 +150,24 @@ void gpsDebug() {
 void userEntry() {
   //Create Data Entry Object
   //ENTRY patient = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-  int patient[6];
   uint8_t buttons;
-  bool NEXT;
-  for(uint8_t i=0; i<6; i++){
+  String answer = "";
+  for (int i = 0; i < 6; i++) {
     lcd.clear();
-    lcd.setCursor(0,0);
+    lcd.setCursor(0, 0);
     lcd.print(DATA_ENTRY[i]);
-    lcd.setCursor(0,1);
-    NEXT = false;
+    lcd.setCursor(0, 1);
     char buff;
-    while(NEXT == false){
-       buff = keypad.getKey();
-       if(buttons & BUTTON_SELECT){
-         patient[i] = 
-         NEXT = true;
-       }
+    while(answer.length() <= 3){
+      buff = keypad.waitForKey();
+      lcd.print(buff); 
+      answer += buff;
     }
+    
+    Serial.println(answer);
+    answer = "";
   }
-  
+
   /* - Menu System Work in Progress
   bool SUBMIT = false;
   uint8_t MENU_INDEX = 0;
@@ -195,6 +195,13 @@ void userEntry() {
       }
     }
   }*/
+  lcdShowTime();
+  delay(3000);
+  lcd.clear();
+  lcd.setCursor(0,0);
+  lcd.print(GPS.latitudeDegrees);
+  lcd.setCursor(0,1);
+  lcd.print(GPS.longitudeDegrees);
 }
 
 void setup() {
@@ -205,8 +212,9 @@ void setup() {
   useInterrupt(true);
   DEBUG_STATE = true;
 
-  //Begin SD Card SPI Interface-  COMPLETELY FUBAR WITH SERIAL INTERRUPTS ON GPS
-
+  //Begin SD Card SPI Interface-  COMPLETELY FUBAR WITH SERIAL INTERRUPTS ON GPS - Board Brown Out?!?!? -
+  //DELETED AND TODO
+ 
   //Begin Serial1 Interface on GPS Module
   GPS.begin(9600);
   GPS.sendCommand(PMTK_SET_NMEA_OUTPUT_RMCGGA);
@@ -242,10 +250,10 @@ void loop() {
   if (DEBUG_STATE) {
     gpsDebug();
   }
-  
+
   userEntry();
   //lcdShowTime();
-  //delay(1000);
+  delay(5000);
   /*
   char key = keypad.getKey();
 
